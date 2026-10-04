@@ -8,6 +8,7 @@ import (
 	"github.com/InazumaV/V2bX/limiter"
 	"github.com/apernet/hysteria/core/v2/server"
 	quic "github.com/apernet/quic-go"
+	"github.com/juju/ratelimit"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +37,11 @@ func (h *HookServer) LogTraffic(id string, tx, rx uint64) (ok bool) {
 		return false
 	}
 
-	userLimit, ok := limiterinfo.UserLimitInfo.Load(format.UserTag(h.Tag, id))
+	taguuid := format.UserTag(h.Tag, id)
+	userLimit, ok := limiterinfo.UserLimitInfo.Load(taguuid)
+	if !ok {
+		return false
+	}
 	if ok {
 		userlimitInfo := userLimit.(*limiter.UserLimitInfo)
 		if userlimitInfo.OverLimit {
@@ -45,9 +50,25 @@ func (h *HookServer) LogTraffic(id string, tx, rx uint64) (ok bool) {
 		}
 	}
 
+	// The native core calls this before forwarding TCP bytes and UDP datagrams.
+	// Share the existing user bucket across streams, sessions and both directions.
+	var bucket *ratelimit.Bucket
+	if value, loaded := limiterinfo.SpeedLimiter.Load(taguuid); loaded {
+		bucket = value.(*ratelimit.Bucket)
+	} else {
+		// Existing connections also need a new bucket after a user update.
+		var reject bool
+		bucket, reject = limiterinfo.CheckLimit(taguuid, "", false, false)
+		if reject {
+			return false
+		}
+	}
+	if bucket != nil {
+		bucket.Wait(int64(tx + rx))
+	}
+
 	if c, exists = h.Counter.Load(h.Tag); !exists {
-		c = counter.NewTrafficCounter()
-		h.Counter.Store(h.Tag, c)
+		c, _ = h.Counter.LoadOrStore(h.Tag, counter.NewTrafficCounter())
 	}
 
 	if tc, ok := c.(*counter.TrafficCounter); ok {
