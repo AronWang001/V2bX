@@ -24,6 +24,8 @@ on:
 jobs:
 
   build:
+    # Fork releases publish the locally verified asset, not an untested matrix.
+    if: github.event_name != 'release' || github.repository == 'wyx2685/V2bX'
     strategy:
       matrix:
         # Include amd64 on all platforms.

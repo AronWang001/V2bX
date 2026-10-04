@@ -1,0 +1,9 @@
+{
+  "Log": { "Level": "info", "Output": "" },
+  "Cores": [
+    { "Type": "hysteria2" },
+    { "Type": "xray" },
+    { "Type": "sing" }
+  ],
+  "Nodes": []
+}

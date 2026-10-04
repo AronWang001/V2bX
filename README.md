@@ -1,5 +1,7 @@
 # V2bX
 
+> 本 Fork 发布基于上游 v0.4.0 的 XBoard 用户限速修复版：原生 Hysteria2，以及 VLESS 的 Xray/sing 数据路径。首次安装与现有节点升级见下方；验证范围与配置示例见 [修复版说明](docs/LIMITFIX.md)。其他协议不标为已验证。
+
 [![](https://img.shields.io/badge/TgChat-UnOfficialV2Board%E4%BA%A4%E6%B5%81%E7%BE%A4-green)](https://t.me/unofficialV2board)
 [![](https://img.shields.io/badge/TgChat-YuzukiProjects%E4%BA%A4%E6%B5%81%E7%BE%A4-blue)](https://t.me/YuzukiProjects)
 
@@ -46,9 +48,13 @@ A V2board node server based on multi core, modified from XrayR.
 
 ### 一键安装
 
+```bash
+wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limitfix/install.sh && bash install.sh
 ```
-wget -N https://raw.githubusercontent.com/wyx2685/V2bX-script/master/install.sh && bash install.sh
-```
+
+支持 **Linux amd64（x86_64）+ systemd**，固定安装 `v0.4.0-hy2-vless-limitfix`；包含 SHA256 校验、升级前备份及启动失败回滚。已有配置、证书与 systemd override 保留，原本运行的服务会重启，原本停止的服务保持停止。首次安装生成空节点配置，需要填写 XBoard 节点信息后再启动。
+
+若只使用 XBoard 套餐限速，确认节点 `LimitConfig.SpeedLimit=0`、`EnableDynamicSpeedLimit=false`；安装器不会自动修改这两个值。`V2bX update` 始终重新安装此固定修复版。仅下载和验证而不安装：`bash install.sh --check`。Release 下载见 [修复版 Release](https://github.com/AronWang001/V2bX/releases/tag/v0.4.0-hy2-vless-limitfix)。
 
 ### 手动安装
 
