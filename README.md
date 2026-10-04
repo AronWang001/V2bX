@@ -49,12 +49,12 @@ A V2board node server based on multi core, modified from XrayR.
 ### 一键安装
 
 ```bash
-wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limitfix/install.sh && bash install.sh
+wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limitfix-menu1/install.sh && bash install.sh
 ```
 
-支持 **Linux amd64（x86_64）+ systemd**，固定安装 `v0.4.0-hy2-vless-limitfix`；包含 SHA256 校验、升级前备份及启动失败回滚。已有配置、证书与 systemd override 保留，原本运行的服务会重启，原本停止的服务保持停止。首次安装生成空节点配置，需要填写 XBoard 节点信息后再启动。
+支持 **Linux amd64（x86_64）+ systemd**，固定安装包 `v0.4.0-hy2-vless-limitfix-menu1`（binary 版本仍为 `v0.4.0-hy2-vless-limitfix`）；包含 SHA256 校验、升级前备份及启动失败回滚。已有配置、证书与 systemd override 保留，原本运行的服务会重启，原本停止的服务保持停止。完整保留原管理脚本 0～17 项菜单，包括配置编辑/生成、BBR、X25519 和放行端口；首次安装可用 `V2bX generate` 配置 XBoard 节点后启动。
 
-若只使用 XBoard 套餐限速，确认节点 `LimitConfig.SpeedLimit=0`、`EnableDynamicSpeedLimit=false`；安装器不会自动修改这两个值。`V2bX update` 始终重新安装此固定修复版。仅下载和验证而不安装：`bash install.sh --check`。Release 下载见 [修复版 Release](https://github.com/AronWang001/V2bX/releases/tag/v0.4.0-hy2-vless-limitfix)。
+若只使用 XBoard 套餐限速，确认节点 `LimitConfig.SpeedLimit=0`、`EnableDynamicSpeedLimit=false`；安装器不会自动修改这两个值。`V2bX update` 始终重新安装此固定修复版。仅下载和验证而不安装：`bash install.sh --check`。Release 下载见 [修复版 Release](https://github.com/AronWang001/V2bX/releases/tag/v0.4.0-hy2-vless-limitfix-menu1)。
 
 ### 手动安装
 

@@ -1,14 +1,14 @@
 # XBoard 用户限速修复版
 
-本版基于 `wyx2685/V2bX` 的 v0.4.0（`3deccaae00d168fd049f8a8659656664f25ee301`），保留原有 UniProxy 对接方式。版本为 `v0.4.0-hy2-vless-limitfix`，binary 对应源码提交 `8f319764bbd2045fdc860ef522b296eba81a0ae6`；Release tag 还包含安装器和文档提交，Go 源码一致。
+本版基于 `wyx2685/V2bX` 的 v0.4.0（`3deccaae00d168fd049f8a8659656664f25ee301`），保留原有 UniProxy 对接方式。当前安装包为 `v0.4.0-hy2-vless-limitfix-menu1`，binary 版本仍为 `v0.4.0-hy2-vless-limitfix`，binary 对应源码提交 `8f319764bbd2045fdc860ef522b296eba81a0ae6`；Release tag 还包含安装器和文档提交，Go 源码一致。
 
 ## 一键安装 / 升级
 
 ```bash
-wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limitfix/install.sh && bash install.sh
+wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limitfix-menu1/install.sh && bash install.sh
 ```
 
-要求：root、Linux x86_64、正在运行的 systemd、Bash，以及 `tar`、`coreutils`、`util-linux`、`curl` 或 `wget`、CA 证书。Debian/Ubuntu 缺少依赖时可先运行 `apt-get update && apt-get install -y ca-certificates curl tar coreutils util-linux`。其他架构和 OpenRC/普通 Docker 安装暂不提供此安装包。
+要求：root、Linux x86_64、正在运行的 systemd、Bash，以及 `tar`、`coreutils`、`util-linux`、`curl` 或 `wget`、CA 证书。Debian/Ubuntu 缺少依赖时可先运行 `apt-get update && apt-get install -y ca-certificates curl tar coreutils util-linux`。其他架构和 OpenRC/普通 Docker 安装暂不提供此安装包。菜单中的配置编辑需 `vi`；IPv6 检测使用 `iproute2`。
 
 脚本固定下载本 Fork 的指定 Release，不使用上游 `latest`。下载包与 binary 各自校验 SHA256，并先运行 `version` 校验版本。`bash install.sh --check` 仅执行下载校验。
 
@@ -21,7 +21,7 @@ wget -N https://raw.githubusercontent.com/AronWang001/V2bX/v0.4.0-hy2-vless-limi
 | 备份 | `/var/backups/V2bX-limitfix/<UTC时间>_<PID>/`，目录仅 root 可访问 |
 | 升级重启 | 仅重启原本运行的服务，验证 PID、binary 校验和和连续 10 秒存活 |
 | 失败回滚 | 恢复旧 binary、管理入口及安装前运行状态；配置本身未被覆盖 |
-| 首次安装 | 安装 geo 数据和含三个 Core 的空节点模板，设置开机自启；填写节点配置后手动启动 |
+| 首次安装 | 安装 geo 数据和含三个 Core 的空节点模板，设置开机自启；可用 `V2bX generate` 生成节点配置并启动 |
 
 备份含旧 binary、管理入口、整个 `/etc/V2bX` 和现有 systemd 输出，可能包含私钥或 API 凭据，应留在服务器并保持 root-only 权限。自定义配置路径和外部证书路径不会被更改，需自行保留其备份。脚本不更改 firewall、数据库、Core 选择、用户、证书或面板 speed_limit。
 
@@ -75,7 +75,31 @@ V2bX log
 V2bX version
 ```
 
-`V2bX` 无参数打开简易管理菜单；`V2bX update` 重新运行本修复版安装器。生成密钥等其他 binary 命令请直接调用 `/usr/local/V2bX/V2bX`。不要使用旧上游管理脚本执行更新，否则会覆盖修复版。
+`V2bX` 无参数打开原版完整 0～17 管理菜单；`V2bX update` 更新固定修复版，`V2bX update_shell` 升级完整修复版管理脚本，`V2bX x25519` 生成密钥，`V2bX generate` 打开原版配置生成向导。安装、更新和维护脚本升级均指向本 Fork，避免覆盖限速修复。其他 binary 命令仍可直接调用 `/usr/local/V2bX/V2bX`。
+
+### 原版管理功能完整保留
+
+管理脚本基于 [wyx2685/V2bX-script](https://github.com/wyx2685/V2bX-script/tree/c532ec57a67d7544c700f3f438c09dffcd0b1313) 的 `V2bX.sh`，按 MPL-2.0 保留来源，原有 30 个函数和全部菜单入口均保留。
+
+| 菜单 | 功能 |
+| --- | --- |
+| 0 | 修改配置 |
+| 1 / 2 / 3 | 安装 / 更新 / 卸载 V2bX |
+| 4 / 5 / 6 | 启动 / 停止 / 重启 |
+| 7 / 8 | 状态 / 日志 |
+| 9 / 10 | 设置 / 取消开机自启 |
+| 11 | 原版 BBR 安装入口 |
+| 12 / 13 | 版本 / X25519 密钥 |
+| 14 | 升级完整修复版维护脚本 |
+| 15 | 原版配置生成向导 |
+| 16 | 原版放行所有端口入口 |
+| 17 | 退出 |
+
+保留原版配置向导的节点添加、证书模式、路由和审计模板；新生成节点显式使用 `SpeedLimit=0`、动态限速关闭。编辑配置、生成配置和确认卸载前备份整个配置目录；维护脚本升级先备份旧脚本，下载和 Bash 语法验证通过后原子替换。菜单 15 会按原版行为重新生成主配置、路由和 Core 模板，需要主动选择。
+
+菜单 2 的版本输入只接受当前已验证的安装包版本或 binary 版本，不安装未知版本。旧的简化菜单版本需重新执行上方新安装命令，不能通过它固定指向旧版的 `update` 自动得到完整菜单。
+
+Linux 隔离测试已验证全部 18 项菜单路由、三个 Core 的配置生成、混合节点、配置备份和管理脚本升级成功/下载失败/语法失败，以及安装器回滚回归。BBR、放行端口、systemd、编辑器和下载全部使用替身测试；没有在生产服务器执行 BBR、修改 firewall 或卸载。
 
 ## 修复路径与证据
 

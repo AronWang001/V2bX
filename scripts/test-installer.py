@@ -51,6 +51,10 @@ elif cmd == 'stop': s['active'] = False
 elif cmd == 'daemon-reload':
     s['load'] = 'loaded' if (root / 'etc/systemd/system/V2bX.service').exists() else 'not-found'
 elif cmd == 'cat': print('Synthetic service with preserved override')
+elif cmd == 'status':
+    print('Active: active (running)' if s['active'] else 'Active: inactive (dead)')
+    sys.exit(0 if s['active'] else 3)
+elif cmd == 'is-enabled': print('enabled')
 elif cmd not in ('enable', 'disable'): sys.exit(2)
 file.write_text(json.dumps(s))
 '''
@@ -155,9 +159,14 @@ def manager_update():
             temporary = root / "tmp"
             fake.mkdir()
             temporary.mkdir()
+            binary = root / 'usr/local/V2bX/V2bX'
+            write(binary, ORIGINAL, 0o755)
+            (root / 'state.json').write_text(json.dumps({'load':'loaded', 'active':True, 'exec':str(binary)}))
+            write(fake / 'systemctl', SYSTEMCTL, 0o755)
             write(root / "update-fixture.sh", "#!/bin/bash\nprintf 'fixture updater executed\\n'\nexit "+("17" if fail else "0")+"\n")
             write(fake / "curl", '#!/bin/bash\nwhile (($#)); do if [[ "$1" == -o ]]; then cp "$FIXTURE_ROOT/update-fixture.sh" "$2"; exit; fi; shift; done\nexit 2\n', 0o755)
-            write(root / "manager.sh", MANAGER, 0o755)
+            manager = MANAGER.replace('/usr/local/V2bX', str(root)+'/usr/local/V2bX')
+            write(root / "manager.sh", manager, 0o755)
             env = dict(os.environ, PATH=str(fake)+":"+os.environ["PATH"], FIXTURE_ROOT=str(root), TMPDIR=str(temporary))
             result = subprocess.run(["bash", str(root / "manager.sh"), "update"], env=env, capture_output=True, text=True, timeout=10)
             assert result.returncode == (17 if fail else 0), (result.stdout, result.stderr)

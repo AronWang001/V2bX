@@ -6,10 +6,11 @@ umask 077
 
 readonly REPOSITORY='AronWang001/V2bX'
 readonly VERSION='v0.4.0-hy2-vless-limitfix'
+readonly RELEASE='v0.4.0-hy2-vless-limitfix-menu1'
 readonly ASSET='V2bX-linux-amd64.tar.gz'
-readonly PACKAGE_SHA256='2349b2977fef9aad0e751ee3a3d1e90dad7d652e4b5f7391ef67556a7d6c9c9f'
+readonly PACKAGE_SHA256='ee7dc37782a16297f8078b980d6ff026e5328338cfa672aa6045f74b7cd58af4'
 readonly BINARY_SHA256='cec15e3e799392b99ca3903bcc6c13361f69c897f677a0e3d8807426f55517ef'
-readonly RELEASE_URL="https://github.com/$REPOSITORY/releases/download/$VERSION/$ASSET"
+readonly RELEASE_URL="https://github.com/$REPOSITORY/releases/download/$RELEASE/$ASSET"
 readonly INSTALL_DIR='/usr/local/V2bX'
 readonly CONFIG_DIR='/etc/V2bX'
 readonly BINARY="$INSTALL_DIR/V2bX"
@@ -112,7 +113,7 @@ exec 9>/run/lock/v2bx-limitfix.lock
 flock -n 9 || die '另一个限速修复版安装任务正在运行。'
 stage=$(mktemp -d /tmp/v2bx-limitfix.XXXXXXXX)
 
-log "下载固定修复版 $VERSION（Linux amd64）..."
+log "下载固定修复版 $RELEASE（binary $VERSION，Linux amd64）..."
 if command -v curl >/dev/null 2>&1; then
     curl --fail --location --proto '=https' --proto-redir '=https' \
         --connect-timeout 10 --max-time 300 "$RELEASE_URL" -o "$stage/$ASSET"
@@ -249,8 +250,9 @@ else
     log '安装前服务未运行，已保留停止状态；配置完成后执行 V2bX start。'
 fi
 committed=1
-log "安装完成：$VERSION"
+log "安装完成：$RELEASE（binary $VERSION）"
 log '现有配置未更改；用户限速继续取自 XBoard 的 speed_limit。'
 log '若希望只使用面板限速，请在自己的节点配置中确认 SpeedLimit=0、EnableDynamicSpeedLimit=false。'
+log '完整菜单：运行 V2bX；配置向导：V2bX generate；更新管理脚本：V2bX update_shell。'
 log '管理命令：V2bX status / version / log / restart / update'
 log '服务存活检查不代表客户端测速验收；请用套餐用户重新连接后测速。'
