@@ -66,8 +66,8 @@ func (h *HookServer) RoutedConnection(_ context.Context, conn net.Conn, m adapte
 	}
 	var t *counter.TrafficCounter
 	if c, ok := h.counter.Load(m.Inbound); !ok {
-		t = counter.NewTrafficCounter()
-		h.counter.Store(m.Inbound, t)
+		c, _ = h.counter.LoadOrStore(m.Inbound, counter.NewTrafficCounter())
+		t = c.(*counter.TrafficCounter)
 	} else {
 		t = c.(*counter.TrafficCounter)
 	}
@@ -88,7 +88,7 @@ func (h *HookServer) RoutedPacketConnection(_ context.Context, conn N.PacketConn
 		log.Error("[", m.Inbound, "] ", "Limited ", m.User, " by ip or conn")
 		return conn
 	} else if b != nil {
-		//conn = rate.NewPacketConnCounter(conn, b)
+		conn = rate.NewPacketConnRateLimiter(conn, b)
 	}
 	if l != nil {
 		destStr := m.Destination.AddrString()
@@ -114,8 +114,8 @@ func (h *HookServer) RoutedPacketConnection(_ context.Context, conn N.PacketConn
 	}
 	var t *counter.TrafficCounter
 	if c, ok := h.counter.Load(m.Inbound); !ok {
-		t = counter.NewTrafficCounter()
-		h.counter.Store(m.Inbound, t)
+		c, _ = h.counter.LoadOrStore(m.Inbound, counter.NewTrafficCounter())
+		t = c.(*counter.TrafficCounter)
 	} else {
 		t = c.(*counter.TrafficCounter)
 	}
