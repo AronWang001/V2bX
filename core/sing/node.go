@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/netip"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -91,7 +90,10 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 		tls.Enabled = true
 		v := info.VAllss
 		tls.ServerName = v.TlsSettings.ServerName
-		port, _ := strconv.Atoi(v.TlsSettings.ServerPort)
+		port, err := parsePort(v.TlsSettings.ServerPort)
+		if err != nil {
+			return option.Inbound{}, fmt.Errorf("invalid reality tls server_port %q: %w", v.TlsSettings.ServerPort, err)
+		}
 		var dest string
 		if v.TlsSettings.Dest != "" {
 			dest = v.TlsSettings.Dest
@@ -108,7 +110,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 			Handshake: option.InboundRealityHandshakeOptions{
 				ServerOptions: option.ServerOptions{
 					Server:     dest,
-					ServerPort: uint16(port),
+					ServerPort: port,
 				},
 			},
 			MaxTimeDifference: badoption.Duration(mtd),
@@ -153,7 +155,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 		case "ws":
 			var (
 				path    string
-				ed      int
+				ed      uint32
 				headers map[string]badoption.Listable[string]
 			)
 			if len(n.NetworkSettings) != 0 {
@@ -168,7 +170,10 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 					return option.Inbound{}, fmt.Errorf("parse path error: %s", err)
 				}
 				path = u.Path
-				ed, _ = strconv.Atoi(u.Query().Get("ed"))
+				ed, err = parseEarlyDataQuery(u.Query())
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("parse websocket early data error: %w", err)
+				}
 				headers = make(map[string]badoption.Listable[string], len(network.Headers))
 				for k, v := range network.Headers {
 					headers[k] = badoption.Listable[string]{
@@ -179,7 +184,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 			t.WebsocketOptions = option.V2RayWebsocketOptions{
 				Path:                path,
 				EarlyDataHeaderName: "Sec-WebSocket-Protocol",
-				MaxEarlyData:        uint32(ed),
+				MaxEarlyData:        ed,
 				Headers:             headers,
 			}
 		case "grpc":
@@ -266,7 +271,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 		case "ws":
 			var (
 				path    string
-				ed      int
+				ed      uint32
 				headers map[string]badoption.Listable[string]
 			)
 			if len(n.NetworkSettings) != 0 {
@@ -281,7 +286,10 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 					return option.Inbound{}, fmt.Errorf("parse path error: %s", err)
 				}
 				path = u.Path
-				ed, _ = strconv.Atoi(u.Query().Get("ed"))
+				ed, err = parseEarlyDataQuery(u.Query())
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("parse websocket early data error: %w", err)
+				}
 				headers = make(map[string]badoption.Listable[string], len(network.Headers))
 				for k, v := range network.Headers {
 					headers[k] = badoption.Listable[string]{
@@ -292,7 +300,7 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 			t.WebsocketOptions = option.V2RayWebsocketOptions{
 				Path:                path,
 				EarlyDataHeaderName: "Sec-WebSocket-Protocol",
-				MaxEarlyData:        uint32(ed),
+				MaxEarlyData:        ed,
 				Headers:             headers,
 			}
 		case "grpc":
@@ -320,19 +328,25 @@ func getInboundOptions(tag string, info *panel.NodeInfo, c *conf.Options) (optio
 		}
 		if c.SingOptions.FallBackConfigs != nil {
 			// fallback handling
+			// FallBack/ServerPort 都为空表示未配置 fallback（默认配置就是空值），
+			// 此时保持不启用 fallback 的旧行为；只要配置了其中任一项，端口就必须合法。
 			fallback := c.SingOptions.FallBackConfigs.FallBack
-			fallbackPort, err := strconv.Atoi(fallback.ServerPort)
-			if err == nil {
+			if fallback.Server != "" || fallback.ServerPort != "" {
+				fallbackPort, err := parsePort(fallback.ServerPort)
+				if err != nil {
+					return option.Inbound{}, fmt.Errorf("invalid fallback server port: %w", err)
+				}
 				trojanoption.Fallback = &option.ServerOptions{
 					Server:     fallback.Server,
-					ServerPort: uint16(fallbackPort),
+					ServerPort: fallbackPort,
 				}
 			}
 			fallbackForALPNMap := c.SingOptions.FallBackConfigs.FallBackForALPN
 			fallbackForALPN := make(map[string]*option.ServerOptions, len(fallbackForALPNMap))
-			if err := processFallback(c, fallbackForALPN); err == nil {
-				trojanoption.FallbackForALPN = fallbackForALPN
+			if err := processFallback(c, fallbackForALPN); err != nil {
+				return option.Inbound{}, fmt.Errorf("invalid fallback for alpn: %w", err)
 			}
+			trojanoption.FallbackForALPN = fallbackForALPN
 		}
 		in.Options = trojanoption
 	case "tuic":
