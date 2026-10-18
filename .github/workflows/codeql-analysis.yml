@@ -13,17 +13,29 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master ]
+    branches: [ fix/hysteria2-speed-limit ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master ]
+    branches: [ fix/hysteria2-speed-limit ]
   schedule:
     - cron: '43 22 * * 3'
+  # Manual runs become available once this workflow exists on the default branch.
+  workflow_dispatch:
+
+# Uploading SARIF to code scanning requires security-events: write. The repository
+# default GITHUB_TOKEN is read-only, so request the minimal extra permission.
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    # The project imports encoding/json/v2 and encoding/json/jsontext (Go 1.25
+    # experiments), so autobuild must run with the same GOEXPERIMENT as releases.
+    env:
+      GOEXPERIMENT: jsonv2
 
     strategy:
       fail-fast: false
@@ -35,11 +47,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # If you wish to specify custom queries, you can do so here or in a config file.
@@ -48,13 +60,13 @@ jobs:
           # queries: ./path/to/local/query, your-org/your-repo/queries@main
           
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
       # If this step fails, then you should remove it and run the build manually (see below)
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v4
 
       # ℹ️ Command-line programs to run using the OS shell.
       # 📚 https://git.io/JvXDl
@@ -68,4 +80,4 @@ jobs:
       #   make release
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v4
